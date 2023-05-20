@@ -1,14 +1,12 @@
 package org.example.bitcask;
 
 import java.io.File;
-import java.time.LocalDateTime;
 
 public class Paths {
     // / for linux and \\ for windows
     static String split = "/";
-    public static String getDirectory(long timestamp){
-        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(timestamp / 1000, 0, java.time.ZoneOffset.UTC);
-        String path =  String.format("%s%s%s%s%s", dateTime.getYear(),split, dateTime.getMonthValue(),split,dateTime.getDayOfMonth());
+    public static String getDirectory(){
+        String path =  String.format("%s%s%s", "bitcask",split, "data");
         System.out.println("Current path: " + path);
         //////////////////////
         createDirectoryPath(path);
@@ -27,14 +25,19 @@ public class Paths {
             System.out.println("Failed to create the folder path.");
         }
     }
+    public static String getHintFilePath(String currentDir, int number) {
+        String currentCompactionPath = String.format("%s%s%s%s", currentDir,split, "hint", number);
+        System.out.println("Compact path: "+ currentCompactionPath);
+        return currentCompactionPath;
+    }
 
-    public static String getCurrentFilePath(long status_timestamp, int lastFileNumber){
-        String currentFilePath = String.format("%s%s%s", getDirectory(status_timestamp),split, lastFileNumber);
+    public static String getCurrentFilePath(int lastFileNumber){
+        String currentFilePath = String.format("%s%s%s", getDirectory(),split, lastFileNumber);
         System.out.println("CurrentFilePath: " + currentFilePath);
         return currentFilePath;
     }
-    public static String getCompactionPath(String currentDir){
-        String currentCompactionPath = String.format("%s%s%s", currentDir,split, "compacted");
+    public static String getCompactionPath(String currentDir, int number){
+        String currentCompactionPath = String.format("%s%s%s%s", currentDir,split, "compacted", number);
         System.out.println("Compact path: "+ currentCompactionPath);
         return currentCompactionPath;
     }
