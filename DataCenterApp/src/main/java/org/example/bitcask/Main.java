@@ -1,12 +1,13 @@
 package org.example.bitcask;
 
+import java.awt.desktop.SystemSleepEvent;
 import java.io.File;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         BitCask bitCask = new BitCask();
         Recovery recovery = new Recovery();
         recovery.recover();
@@ -17,15 +18,32 @@ public class Main {
         for(long n : BitCask.hashTable.keySet()){
             System.out.println(bitCask.get(n));
         }
-//
-//        for(int i = 0;i < 1005; i++){
-//            Weather weather = new Weather(50,60,70);
-//            Record rec = new Record(i % 10, i ,"low",System.currentTimeMillis(),weather);
-//            bitCask.handleMessage(rec);
-////            for(long n : BitCask.hashTable.keySet()){
-////            System.out.println(bitCask.get(n));
-////        }
-//        }
 
+//        long startw = System.currentTimeMillis();
+//        Thread t =  new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                for(int i = 0;i < 1005; i++){
+//                    Weather weather = new Weather(50,60,70);
+//                    Record rec = new Record(i % 10, i ,"low",System.currentTimeMillis(),weather);
+//                    try {
+//                        bitCask.handleMessage(rec);
+//                    } catch (InterruptedException e) {
+//                        throw new RuntimeException(e);
+//                    }
+//                }
+//            }
+//        });
+//        t.start();
+//        t.join();
+//        long endw = System.currentTimeMillis();
+//        System.out.println("Time taken for write 1005 : "+ (endw-startw));
+//
+//        long startr = System.currentTimeMillis();
+//        for(long n : BitCask.hashTable.keySet()){
+//            System.out.println(bitCask.get(n));
+//        }
+//        long endr = System.currentTimeMillis();
+//        System.out.println("Time taken to read 10 stations : "+ (endr-startr));
     }
 }

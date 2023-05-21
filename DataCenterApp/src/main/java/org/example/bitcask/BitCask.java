@@ -3,6 +3,8 @@ package org.example.bitcask;
 import java.io.*;
 import java.util.HashMap;
 import java.io.FileInputStream;
+import java.util.concurrent.CountDownLatch;
+
 import static org.example.bitcask.Paths.*;
 record activeHashedValue(String filePath, long offset) {
 }
@@ -13,7 +15,7 @@ public class BitCask {
        so we need to get the right values for them
        RECOVERY
     */
-    static HashMap<Long, activeHashedValue> hashTable = new HashMap<>();
+    static volatile HashMap<Long, activeHashedValue> hashTable = new HashMap<>();
     // To keep track of Non compacted Files
     static int NumberOf_Non_CompactedFiles = 0;
     static int LastNonCompacted = 0;
@@ -25,8 +27,13 @@ public class BitCask {
     private static final Compact compactObj = new Compact();
     boolean firstWrite = true;
 
-    public BitCask() {
+    private Object writeLock = new Object();
+    private CountDownLatch latch = new CountDownLatch(100);
+
+    public BitCask(CountDownLatch latch) {
+        this.latch = latch;
     }
+    public BitCask() {}
     private void createNewFile(){
         LastNonCompacted++;
         NumberOf_Non_CompactedFiles++;
@@ -67,35 +74,42 @@ public class BitCask {
             throw new RuntimeException(e);
         }
     }
-    public Record get(long key) {
-        long offset = hashTable.get(key).offset();
-        String filepath = hashTable.get(key).filePath();
-        Record record = null;
-        File file = new File(filepath);
-        if (file.exists()) {
-            try {
-                FileInputStream fi = new FileInputStream(filepath);
-                fi.skip(offset);
-                DataInputStream is = new DataInputStream(fi);
-                record = new Record();
-                record.station_id = is.readLong();
-                record.s_no = is.readLong();
-                record.battery_status = is.readUTF();
-                record.status_timestamp = is.readLong();
-                Weather w = new Weather();
-                w.humidity = is.readInt();
-                w.temperature = is.readInt();
-                w.wind_speed = is.readInt();
-                record.weather = w;
-                is.close();
-                fi.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+    public Record get(long key) throws InterruptedException {
+        Record record = new Record();;
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                long offset = hashTable.get(key).offset();
+                String filepath = hashTable.get(key).filePath();
+                File file = new File(filepath);
+                if (file.exists()) {
+                    try {
+                        FileInputStream fi = new FileInputStream(filepath);
+                        fi.skip(offset);
+                        DataInputStream is = new DataInputStream(fi);
+                        //record = new Record();
+                        record.station_id = is.readLong();
+                        record.s_no = is.readLong();
+                        record.battery_status = is.readUTF();
+                        record.status_timestamp = is.readLong();
+                        Weather w = new Weather();
+                        w.humidity = is.readInt();
+                        w.temperature = is.readInt();
+                        w.wind_speed = is.readInt();
+                        record.weather = w;
+                        is.close();
+                        fi.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }else{
+                    System.out.println("Get: File doesn't exist");
+                }
+                //return record;
             }
-        }else{
-            System.out.println("Get: File doesn't exist");
-        }
-
+        });
+        t.start();
+        t.join();
         return record;
     }
 
@@ -111,7 +125,7 @@ public class BitCask {
 
     // last file number could be modified by another thread
     // this is why it's passed here would this help??
-    private void compact(String CurrentDir, int NumberOfCompactedFiles, int LastNonCompactedNumber) {
+    private void compact(String CurrentDir, int NumberOfCompactedFiles, int LastNonCompactedNumber) throws InterruptedException {
 
 //        //////////////////
 //        ///This should be done carefully
@@ -122,49 +136,86 @@ public class BitCask {
             Hint files for compacted files should be deleted
          */
 
-         compactObj.compact(CurrentDir, NumberOfCompactedFiles);
-         HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
-         String compactionPath = getCompactionPath(CurrentDir, NumberOfCompactedFiles);
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                compactObj.compact(CurrentDir, NumberOfCompactedFiles);
+                HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
+                String compactionPath = getCompactionPath(CurrentDir, NumberOfCompactedFiles);
         /*
             Updating the active hashmap this should be done carefully
             This code must go somewhere else
             I think here we must stop other readers and writers to
             Modify the active hashmap
         */
-        for (long key : compactedHashMap.keySet()) {
-            compactedHashedValue value = compactedHashMap.get(key);
-            System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
-            if(get(key).status_timestamp == value.record().status_timestamp){
-                hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
+                for (long key : compactedHashMap.keySet()) {
+                    compactedHashedValue value = compactedHashMap.get(key);
+                    System.out.println("compacting");
+                    //System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
+                    try {
+                        if(get(key).status_timestamp == value.record().status_timestamp){
+                            hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
+                        }
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                ///////////
+                // This should be done carefully
+                ///////////
+                compactObj.collect_old_files();
+                //////////
+                //////////
+                IncrementNumberOfCompacted();
             }
-        }
-        ///////////
-        // This should be done carefully
-        ///////////
-        compactObj.collect_old_files();
-        //////////
-        //////////
-        IncrementNumberOfCompacted();
+        });
+        t.start();
+
     }
 
     private void IncrementNumberOfCompacted() {
         NumberOfCompactedFiles++;
     }
-    private boolean checkCompact(){
-        return NumberOf_Non_CompactedFiles >= FilesNumberLimit;
-    }
-    public void handleMessage(Record rec) {
-        String currentFilePath = getCurrentFilePath(LastNonCompacted);
-        this.put(rec, currentFilePath);
-        //////////////////
-        //////////////////
-        // we can instead schedule a thread that runs every x seconds????????
-        if(checkCompact()){
-            this.compact(getDirectory(), NumberOfCompactedFiles, NumberOf_Non_CompactedFiles);
-            for(long n : hashTable.keySet()){
-                System.out.println(hashTable.get(n).filePath());
+    private void checkCompact(){
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                BitCask bt = new BitCask();
+                System.out.println("count down latch is " + latch.getCount());
+                if (latch.getCount() <= 0){{
+                    try {
+                        bt.compact(getDirectory(), NumberOfCompactedFiles, NumberOf_Non_CompactedFiles);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    /*for (long n : hashTable.keySet()) {
+                        System.out.println(hashTable.get(n).filePath());
+                    }*/
+                    latch = new CountDownLatch(100);
+                }}
             }
-        }
+        });
+        t.start();
+
+    }
+    public void handleMessage(Record rec) throws InterruptedException {
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (writeLock) {
+                    BitCask bt = new BitCask();
+                    String currentFilePath = getCurrentFilePath(LastNonCompacted);
+                    bt.put(rec, currentFilePath);
+                    latch.countDown();
+                    //////////////////
+                    //////////////////
+                    // we can instead schedule a thread that runs every x seconds????????
+                    checkCompact();
+                }
+            }
+        });
+        t.start();
         //////////////////
         /////////////////
     }

@@ -4,7 +4,7 @@ import java.io.File;
 
 public class Paths {
     // / for linux and \\ for windows
-    static String split = "/";
+    static String split = "\\";
     public static String getDirectory(){
         String path =  String.format("%s%s%s", "bitcask",split, "data");
         System.out.println("Current path: " + path);
