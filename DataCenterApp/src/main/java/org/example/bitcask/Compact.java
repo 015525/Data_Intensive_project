@@ -12,6 +12,7 @@ record compactedHashedValue(Record record, long offset) {
 public class Compact {
     public HashMap<Long, compactedHashedValue> compactedHashMap;
     public List<File> inActiveFiles;
+    private Object readLock = new Object();
     private List<File> getListOfInactiveFilesSorted(String currentDir){
         List<File> filteredFiles = new ArrayList<>();
         File directory = new File(currentDir);
@@ -41,46 +42,48 @@ public class Compact {
         return filteredFiles;
     }
     private void readInactiveFiles(){
-        compactedHashMap = new HashMap<>();
-        String currentDir = getDirectory();
-        inActiveFiles = getListOfInactiveFilesSorted(currentDir);
-        for (File file : inActiveFiles) {
-            try (FileInputStream fi = new FileInputStream(file);
-                 DataInputStream is = new DataInputStream(fi)) {
-                while (true) {
-                    try {
-                        Record rec = new Record();
-                        rec.station_id = is.readLong();
-                        long id = rec.station_id;
-                        rec.s_no = is.readLong();
-                        rec.battery_status = is.readUTF();
-                        rec.status_timestamp = is.readLong();
-                        Weather w = new Weather();
-                        w.humidity = is.readInt();
-                        w.temperature = is.readInt();
-                        w.wind_speed = is.readInt();
-                        rec.weather = w;
-                        if (compactedHashMap.containsKey(id)) {
-                            if (compactedHashMap.get(id).record().status_timestamp < rec.status_timestamp) {
+        synchronized (readLock) {
+            compactedHashMap = new HashMap<>();
+            String currentDir = getDirectory();
+            inActiveFiles = getListOfInactiveFilesSorted(currentDir);
+            for (File file : inActiveFiles) {
+                try (FileInputStream fi = new FileInputStream(file);
+                     DataInputStream is = new DataInputStream(fi)) {
+                    while (true) {
+                        try {
+                            Record rec = new Record();
+                            rec.station_id = is.readLong();
+                            long id = rec.station_id;
+                            rec.s_no = is.readLong();
+                            rec.battery_status = is.readUTF();
+                            rec.status_timestamp = is.readLong();
+                            Weather w = new Weather();
+                            w.humidity = is.readInt();
+                            w.temperature = is.readInt();
+                            w.wind_speed = is.readInt();
+                            rec.weather = w;
+                            if (compactedHashMap.containsKey(id)) {
+                                if (compactedHashMap.get(id).record().status_timestamp < rec.status_timestamp) {
+                                    compactedHashMap.put(id, new compactedHashedValue(rec, 0));
+                                }
+                            } else {
                                 compactedHashMap.put(id, new compactedHashedValue(rec, 0));
                             }
-                        } else {
-                            compactedHashMap.put(id, new compactedHashedValue(rec, 0));
+                        } catch (EOFException e) {
+                            fi.close();
+                            is.close();
+                            break; // Reached end of file
                         }
-                    } catch (EOFException e) {
-                        fi.close();
-                        is.close();
-                        break; // Reached end of file
                     }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
                 /*
                     No need to continue
                  */
-            if (compactedHashMap.keySet().size() == BitCask.NumberOfKeys) {
-                break;
+                if (compactedHashMap.keySet().size() == BitCask.NumberOfKeys) {
+                    break;
+                }
             }
         }
 

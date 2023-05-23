@@ -16,6 +16,7 @@ public class Main {
         BitCask.NumberOf_Non_CompactedFiles = recovery.NumberOf_Non_CompactedFiles;
         BitCask.LastNonCompacted = recovery.LastNonCompacted;
         for(long n : BitCask.hashTable.keySet()){
+            System.out.println("key is " + n);
             System.out.println(bitCask.get(n));
         }
 

@@ -17,8 +17,8 @@ public class BitCask {
     */
     static volatile HashMap<Long, activeHashedValue> hashTable = new HashMap<>();
     // To keep track of Non compacted Files
-    static int NumberOf_Non_CompactedFiles = 0;
-    static int LastNonCompacted = 0;
+    static volatile int NumberOf_Non_CompactedFiles = 0;
+    static volatile int LastNonCompacted = 0;
     // To keep track of compacted files
     static int NumberOfCompactedFiles = 0;
     private final static int maxFileSize= 1000;
@@ -28,6 +28,9 @@ public class BitCask {
     boolean firstWrite = true;
 
     private Object writeLock = new Object();
+    private Object compactLock = new Object();
+    private Object handleMessageLock = new Object();
+    private Object createLock = new Object();
     private CountDownLatch latch = new CountDownLatch(100);
 
     public BitCask(CountDownLatch latch) {
@@ -35,25 +38,31 @@ public class BitCask {
     }
     public BitCask() {}
     private void createNewFile(){
-        LastNonCompacted++;
-        NumberOf_Non_CompactedFiles++;
+        //synchronized (createLock) {
+            LastNonCompacted++;
+            NumberOf_Non_CompactedFiles++;
+        //}
     }
 
     private void put(Record record, String filepath) {
-        long key = record.station_id;
-        File file = new File(filepath);
-        long offset = file.length();
-        if(file.exists()){
-            firstWrite = false;
-        }else{
-            firstWrite = true;
-        }
-        System.out.println(offset);
-        hashTable.put(key, new activeHashedValue(filepath,offset));
-        this.writeObj(record, filepath);
-        if (file.length() >= maxFileSize){
-            createNewFile();
-        }
+        //synchronized (writeLock) {
+            //BitCask bt = new BitCask();
+            long key = record.station_id;
+            File file = new File(filepath);
+            long offset = file.length();
+            if(file.exists()){
+                firstWrite = false;
+            }else{
+                firstWrite = true;
+            }
+            //System.out.println(offset);
+            System.out.println("the key headache 1 is "+key);
+            hashTable.put(key, new activeHashedValue(filepath,offset));
+            this.writeObj(record, filepath);
+            if (file.length() >= maxFileSize){
+                createNewFile();
+            }
+        //}
     }
 
     private void writeObj(Record record, String filepath){
@@ -136,40 +145,37 @@ public class BitCask {
             Hint files for compacted files should be deleted
          */
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                compactObj.compact(CurrentDir, NumberOfCompactedFiles);
-                HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
-                String compactionPath = getCompactionPath(CurrentDir, NumberOfCompactedFiles);
-        /*
-            Updating the active hashmap this should be done carefully
-            This code must go somewhere else
-            I think here we must stop other readers and writers to
-            Modify the active hashmap
-        */
-                for (long key : compactedHashMap.keySet()) {
-                    compactedHashedValue value = compactedHashMap.get(key);
-                    System.out.println("compacting");
-                    //System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
-                    try {
-                        if(get(key).status_timestamp == value.record().status_timestamp){
-                            hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
-                        }
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+        //synchronized (compactLock) {
+            compactObj.compact(CurrentDir, NumberOfCompactedFiles);
+            HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
+            String compactionPath = getCompactionPath(CurrentDir, NumberOfCompactedFiles);
+/*
+    Updating the active hashmap this should be done carefully
+    This code must go somewhere else
+    I think here we must stop other readers and writers to
+    Modify the active hashmap
+*/
+            for (long key : compactedHashMap.keySet()) {
+                compactedHashedValue value = compactedHashMap.get(key);
+                System.out.println("compacting");
+                //System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
+                try {
+                    if (get(key).status_timestamp == value.record().status_timestamp) {
+                        System.out.println("the key headache 2 is "+key);
+                        hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
                     }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                ///////////
-                // This should be done carefully
-                ///////////
-                compactObj.collect_old_files();
-                //////////
-                //////////
-                IncrementNumberOfCompacted();
             }
-        });
-        t.start();
+            ///////////
+            // This should be done carefully
+            ///////////
+            compactObj.collect_old_files();
+            //////////
+            //////////
+            IncrementNumberOfCompacted();
+        //}
 
     }
 
@@ -180,30 +186,33 @@ public class BitCask {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                BitCask bt = new BitCask();
-                System.out.println("count down latch is " + latch.getCount());
-                if (latch.getCount() <= 0){{
-                    try {
-                        bt.compact(getDirectory(), NumberOfCompactedFiles, NumberOf_Non_CompactedFiles);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                synchronized (compactLock) {
+                    BitCask bt = new BitCask();
+                    System.out.println("count down latch is " + latch.getCount());
+                    if (latch.getCount() <= 0) {
+                        {
+                            try {
+                                bt.compact(getDirectory(), NumberOfCompactedFiles, NumberOf_Non_CompactedFiles);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                /*for (long n : hashTable.keySet()) {
+                    System.out.println(hashTable.get(n).filePath());
+                }*/
+                            latch = new CountDownLatch(100);
+                        }
                     }
-                    /*for (long n : hashTable.keySet()) {
-                        System.out.println(hashTable.get(n).filePath());
-                    }*/
-                    latch = new CountDownLatch(100);
-                }}
+                }
             }
         });
         t.start();
 
     }
     public void handleMessage(Record rec) throws InterruptedException {
-
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                synchronized (writeLock) {
+                synchronized (handleMessageLock) {
                     BitCask bt = new BitCask();
                     String currentFilePath = getCurrentFilePath(LastNonCompacted);
                     bt.put(rec, currentFilePath);
@@ -212,11 +221,11 @@ public class BitCask {
                     //////////////////
                     // we can instead schedule a thread that runs every x seconds????????
                     checkCompact();
+                    //////////////////
+                    /////////////////
                 }
             }
         });
         t.start();
-        //////////////////
-        /////////////////
     }
 }
