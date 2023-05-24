@@ -56,7 +56,7 @@ public class BitCask {
                 firstWrite = true;
             }
             //System.out.println(offset);
-            System.out.println("the key headache 1 is "+key);
+            //System.out.println("the key headache 1 is "+key);
             hashTable.put(key, new activeHashedValue(filepath,offset));
             this.writeObj(record, filepath);
             if (file.length() >= maxFileSize){
@@ -157,11 +157,11 @@ public class BitCask {
 */
             for (long key : compactedHashMap.keySet()) {
                 compactedHashedValue value = compactedHashMap.get(key);
-                System.out.println("compacting");
+                //System.out.println("compacting");
                 //System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
                 try {
                     if (get(key).status_timestamp == value.record().status_timestamp) {
-                        System.out.println("the key headache 2 is "+key);
+                        //System.out.println("the key headache 2 is "+key);
                         hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
                     }
                 } catch (InterruptedException e) {
@@ -188,7 +188,7 @@ public class BitCask {
             public void run() {
                 synchronized (compactLock) {
                     BitCask bt = new BitCask();
-                    System.out.println("count down latch is " + latch.getCount());
+                    //System.out.println("count down latch is " + latch.getCount());
                     if (latch.getCount() <= 0) {
                         {
                             try {

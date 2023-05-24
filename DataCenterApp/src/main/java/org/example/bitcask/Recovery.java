@@ -19,9 +19,9 @@ public class Recovery {
         String currentDir = getDirectory();
         File[] files = getFileListSorted(currentDir);
         constructHashMap(files);
-        for(long n : recoverdHashMap.keySet()){
+        /*for(long n : recoverdHashMap.keySet()){
             System.out.println("id:  " + n + "  value  " + recoverdHashMap.get(n));
-        }
+        }*/
 
     }
 
@@ -54,12 +54,12 @@ public class Recovery {
                     long offset = is.readLong();
                     if (recoverdHashMap.containsKey(id)) {
                         if (recoveredHashMapTimeStamps.get(id) < time) {
-                            System.out.println("recoverd key 1 is "+id);
+                            //System.out.println("recoverd key 1 is "+id);
                             recoverdHashMap.put(id, new activeHashedValue(compactedPath, offset));
                             recoveredHashMapTimeStamps.put(id, time);
                         }
                     } else {
-                        System.out.println("recoverd key 2 is "+id);
+                        //System.out.println("recoverd key 2 is "+id);
                         recoverdHashMap.put(id, new activeHashedValue(compactedPath, offset));
                         recoveredHashMapTimeStamps.put(id, time);
                     }
@@ -97,12 +97,12 @@ public class Recovery {
                     rec.weather = w;
                     if (recoverdHashMap.containsKey(rec.station_id)) {
                         if (recoveredHashMapTimeStamps.get(rec.station_id) < rec.status_timestamp) {
-                            System.out.println("recoverd key 3 is "+rec.station_id);
+                            //System.out.println("recoverd key 3 is "+rec.station_id);
                             recoverdHashMap.put(rec.station_id, new activeHashedValue(filePath, offset));
                             recoveredHashMapTimeStamps.put(rec.station_id, rec.status_timestamp);
                         }
                     } else {
-                        System.out.println("recoverd key 4 is "+rec.station_id);
+                        //System.out.println("recoverd key 4 is "+rec.station_id);
                         recoverdHashMap.put(rec.station_id, new activeHashedValue(filePath, offset));
                         recoveredHashMapTimeStamps.put(rec.station_id, rec.status_timestamp);
                     }
@@ -126,9 +126,9 @@ public class Recovery {
             Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
 
             // Print the sorted files
-            for (File file : files) {
+            /*for (File file : files) {
                 System.out.println(file.getName() + " - Last Modified: " + file.lastModified());
-            }
+            }*/
         }
         return files;
     }
