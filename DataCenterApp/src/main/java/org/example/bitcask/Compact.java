@@ -13,40 +13,36 @@ public class Compact {
     public HashMap<Long, compactedHashedValue> compactedHashMap;
     public List<File> inActiveFiles;
     private Object readLock = new Object();
+
     private List<File> getListOfInactiveFilesSorted(String currentDir){
-        List<File> filteredFiles = new ArrayList<>();
         File directory = new File(currentDir);
         File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile() ) {
-                    try{
-                        int fileNameInt = Integer.parseInt(file.getName());
-                        if(fileNameInt >= 0){
-                            filteredFiles.add(file);
-                        }
-                    }catch (Exception ignored){
-                    }
-                }
-            }
-        }
-        filteredFiles.sort((file1, file2) -> {
-            int number1 = Integer.parseInt(file1.getName());
-            int number2 = Integer.parseInt(file2.getName());
-            return Integer.compare(number2, number1);
+        assert files != null;
+        Arrays.sort(files, (file1, file2) -> {
+            long lastModified1 = file1.lastModified();
+            long lastModified2 = file2.lastModified();
+            return Long.compare(lastModified2, lastModified1);
         });
+
+        ArrayList<File> filteredFiles =  new ArrayList<>(Arrays.asList(files));
+        for (File file : filteredFiles) {
+            System.out.println(file.getName());
+        }
         /////////////////////
         ///// Delete active file
         /////////////////////
+
         filteredFiles.remove(0);
         return filteredFiles;
     }
+
     private void readInactiveFiles(){
         synchronized (readLock) {
             compactedHashMap = new HashMap<>();
             String currentDir = getDirectory();
             inActiveFiles = getListOfInactiveFilesSorted(currentDir);
             for (File file : inActiveFiles) {
+                if(file.getName().contains("hint")) continue;
                 try (FileInputStream fi = new FileInputStream(file);
                      DataInputStream is = new DataInputStream(fi)) {
                     while (true) {
@@ -78,27 +74,20 @@ public class Compact {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                /*
-                    No need to continue
-                 */
-                if (compactedHashMap.keySet().size() == BitCask.NumberOfKeys) {
-                    break;
-                }
             }
         }
-
-
     }
-    private void generateCompactedFile(String currentDir, int lastCompactedNumber){
+
+    private void generateCompactedFile(String currentDir){
         /*
             After I make the compacted hash map I write the compacted file
         */
-        String compactionPath = getCompactionPath(currentDir, lastCompactedNumber);
-        String hintFilePath = getHintFilePath(currentDir, lastCompactedNumber);
+        String compactionPath = getCompactionPath(currentDir);
+        String hintFilePath = getHintFilePath(currentDir);
         try {
-            FileOutputStream fo = new FileOutputStream(compactionPath, true);
+            FileOutputStream fo = new FileOutputStream(compactionPath, false);
             DataOutputStream os = new DataOutputStream(fo);
-            FileOutputStream foHint = new FileOutputStream(hintFilePath, true);
+            FileOutputStream foHint = new FileOutputStream(hintFilePath, false);
             DataOutputStream osHint = new DataOutputStream(foHint);
             for (long key : compactedHashMap.keySet()) {
                 compactedHashedValue value = compactedHashMap.get(key);
@@ -128,16 +117,14 @@ public class Compact {
         }
     }
 
-    public void compact(String currentDir, int NumberOfCompactedFiles){
+    public void compact(String currentDir){
         readInactiveFiles();
-        generateCompactedFile(currentDir, NumberOfCompactedFiles);
+        generateCompactedFile(currentDir);
+        System.out.println("Generated compact file");
     }
-
     public void collect_old_files() {
-        /*
-            collect inactive files only
-         */
         for (File file : inActiveFiles) {
+            if(file.getName().contains("hint") || file.getName().contains("compacted")) continue;
             boolean isDeleted = file.delete();
             if (isDeleted) {
                 System.out.println("Deleted file: " + file.getName());
@@ -145,9 +132,5 @@ public class Compact {
                 System.out.println("Failed to delete file: " + file.getName());
             }
         }
-        BitCask.NumberOf_Non_CompactedFiles -= inActiveFiles.size();
-    }
-    public void deleteHintFiles(){
-
     }
 }

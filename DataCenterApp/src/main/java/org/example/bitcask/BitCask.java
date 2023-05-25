@@ -17,52 +17,33 @@ public class BitCask {
     */
     static volatile HashMap<Long, activeHashedValue> hashTable = new HashMap<>();
     // To keep track of Non compacted Files
-    static volatile int NumberOf_Non_CompactedFiles = 0;
     static volatile int LastNonCompacted = 0;
     // To keep track of compacted files
-    static int NumberOfCompactedFiles = 0;
     private final static int maxFileSize= 1000;
-    private final static int FilesNumberLimit = 5;
-    public static final int NumberOfKeys = 10;
     private static final Compact compactObj = new Compact();
-    boolean firstWrite = true;
-
-    private Object writeLock = new Object();
     private Object compactLock = new Object();
     private Object handleMessageLock = new Object();
-    private Object createLock = new Object();
     private CountDownLatch latch = new CountDownLatch(100);
 
     public BitCask(CountDownLatch latch) {
         this.latch = latch;
     }
+
     public BitCask() {}
-    private void createNewFile(){
-        //synchronized (createLock) {
-            LastNonCompacted++;
-            NumberOf_Non_CompactedFiles++;
-        //}
+
+    private synchronized void createNewFile(){
+        LastNonCompacted++;
     }
 
     private void put(Record record, String filepath) {
-        //synchronized (writeLock) {
-            //BitCask bt = new BitCask();
-            long key = record.station_id;
-            File file = new File(filepath);
-            long offset = file.length();
-            if(file.exists()){
-                firstWrite = false;
-            }else{
-                firstWrite = true;
-            }
-            //System.out.println(offset);
-            //System.out.println("the key headache 1 is "+key);
-            hashTable.put(key, new activeHashedValue(filepath,offset));
-            this.writeObj(record, filepath);
-            if (file.length() >= maxFileSize){
-                createNewFile();
-            }
-        //}
+        long key = record.station_id;
+        File file = new File(filepath);
+        long offset = file.length();
+        hashTable.put(key, new activeHashedValue(filepath,offset));
+        this.writeObj(record, filepath);
+        if (file.length() >= maxFileSize){
+            createNewFile();
+        }
     }
 
     private void writeObj(Record record, String filepath){
@@ -132,56 +113,33 @@ public class BitCask {
         server in an efficient manner.
      */
 
-    // last file number could be modified by another thread
-    // this is why it's passed here would this help??
-    private void compact(String CurrentDir, int NumberOfCompactedFiles, int LastNonCompactedNumber) throws InterruptedException {
 
-//        //////////////////
-//        ///This should be done carefully
-          // I think old files shouldn't be collected immediately,
-          // After compaction this should be done safely;
-          // collect_old_files(currentDir);
-         /*
-            Hint files for compacted files should be deleted
-         */
+    private void compact(String CurrentDir) throws InterruptedException {
 
-        //synchronized (compactLock) {
-            compactObj.compact(CurrentDir, NumberOfCompactedFiles);
-            HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
-            String compactionPath = getCompactionPath(CurrentDir, NumberOfCompactedFiles);
-/*
-    Updating the active hashmap this should be done carefully
-    This code must go somewhere else
-    I think here we must stop other readers and writers to
-    Modify the active hashmap
-*/
-            for (long key : compactedHashMap.keySet()) {
-                compactedHashedValue value = compactedHashMap.get(key);
-                //System.out.println("compacting");
-                //System.out.println(hashTable.get(key).filePath() + "  " + hashTable.get(key).offset());
-                try {
-                    if (get(key).status_timestamp == value.record().status_timestamp) {
-                        //System.out.println("the key headache 2 is "+key);
-                        hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+        compactObj.compact(CurrentDir);
+        HashMap<Long, compactedHashedValue> compactedHashMap = compactObj.compactedHashMap;
+        String compactionPath = getCompactionPath(CurrentDir);
+
+        for (long key : compactedHashMap.keySet()) {
+            compactedHashedValue value = compactedHashMap.get(key);
+            try {
+                if (get(key).status_timestamp == value.record().status_timestamp) {
+                    hashTable.put(key, new activeHashedValue(compactionPath, value.offset()));
                 }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-            ///////////
-            // This should be done carefully
-            ///////////
-            compactObj.collect_old_files();
-            //////////
-            //////////
-            IncrementNumberOfCompacted();
-        //}
+        }
+
+        ///////////
+        // This should be done carefully
+        ///////////
+        compactObj.collect_old_files();
+        //////////
+        //////////
 
     }
 
-    private void IncrementNumberOfCompacted() {
-        NumberOfCompactedFiles++;
-    }
     private void checkCompact(){
         Thread t = new Thread(new Runnable() {
             @Override
@@ -192,13 +150,10 @@ public class BitCask {
                     if (latch.getCount() <= 0) {
                         {
                             try {
-                                bt.compact(getDirectory(), NumberOfCompactedFiles, NumberOf_Non_CompactedFiles);
+                                bt.compact(getDirectory());
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
-                /*for (long n : hashTable.keySet()) {
-                    System.out.println(hashTable.get(n).filePath());
-                }*/
                             latch = new CountDownLatch(100);
                         }
                     }
@@ -206,7 +161,6 @@ public class BitCask {
             }
         });
         t.start();
-
     }
     public void handleMessage(Record rec) throws InterruptedException {
         Thread t = new Thread(new Runnable() {
@@ -217,12 +171,8 @@ public class BitCask {
                     String currentFilePath = getCurrentFilePath(LastNonCompacted);
                     bt.put(rec, currentFilePath);
                     latch.countDown();
-                    //////////////////
-                    //////////////////
-                    // we can instead schedule a thread that runs every x seconds????????
                     checkCompact();
-                    //////////////////
-                    /////////////////
+
                 }
             }
         });

@@ -10,10 +10,7 @@ import static org.example.bitcask.Paths.getDirectory;
 public class Recovery {
     HashMap<Long,activeHashedValue> recoverdHashMap = new HashMap<>();
     HashMap<Long,Long> recoveredHashMapTimeStamps = new HashMap<>();
-
-    int NumberOf_Non_CompactedFiles = 0;
     int LastNonCompacted = 0;
-    int NumberOfCompactedFiles = 0;
 
     public void recover(){
         String currentDir = getDirectory();
@@ -32,11 +29,9 @@ public class Recovery {
                 if (file.isFile()) {
                     if(file.getName().contains("hint")){
                         readHintFile(file.getPath());
-                        NumberOfCompactedFiles++;
                     }else if(!file.getName().contains("compacted")){
                         readRegularFile(file.getPath());
                         LastNonCompacted = Math.max(LastNonCompacted, Integer.parseInt(file.getName()));
-                        NumberOf_Non_CompactedFiles++;
                     }
                 }
             }
@@ -54,12 +49,10 @@ public class Recovery {
                     long offset = is.readLong();
                     if (recoverdHashMap.containsKey(id)) {
                         if (recoveredHashMapTimeStamps.get(id) < time) {
-                            //System.out.println("recoverd key 1 is "+id);
                             recoverdHashMap.put(id, new activeHashedValue(compactedPath, offset));
                             recoveredHashMapTimeStamps.put(id, time);
                         }
                     } else {
-                        //System.out.println("recoverd key 2 is "+id);
                         recoverdHashMap.put(id, new activeHashedValue(compactedPath, offset));
                         recoveredHashMapTimeStamps.put(id, time);
                     }
@@ -97,12 +90,10 @@ public class Recovery {
                     rec.weather = w;
                     if (recoverdHashMap.containsKey(rec.station_id)) {
                         if (recoveredHashMapTimeStamps.get(rec.station_id) < rec.status_timestamp) {
-                            //System.out.println("recoverd key 3 is "+rec.station_id);
                             recoverdHashMap.put(rec.station_id, new activeHashedValue(filePath, offset));
                             recoveredHashMapTimeStamps.put(rec.station_id, rec.status_timestamp);
                         }
                     } else {
-                        //System.out.println("recoverd key 4 is "+rec.station_id);
                         recoverdHashMap.put(rec.station_id, new activeHashedValue(filePath, offset));
                         recoveredHashMapTimeStamps.put(rec.station_id, rec.status_timestamp);
                     }
@@ -120,15 +111,12 @@ public class Recovery {
     private File[] getFileListSorted(String directoryPath){
         File directory = new File(directoryPath);
         File[] files = directory.listFiles();
-
         if (files != null) {
             // Sort files by last modified timestamp in descending order
             Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
-
-            // Print the sorted files
-            /*for (File file : files) {
-                System.out.println(file.getName() + " - Last Modified: " + file.lastModified());
-            }*/
+            for (File file : files) {
+                System.out.println(file.getName());
+            }
         }
         return files;
     }
