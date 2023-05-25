@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
         - name: data
-          image: datac
+          image: data-center
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: data-volume
-              mountPath: /media/gad/mega/new
+              mountPath: /storage/stations
       volumes:
         - name: data-volume
           persistentVolumeClaim:

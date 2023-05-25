@@ -16,7 +16,7 @@ import org.example.bitcask.avro.WeatherMessage;
 
 public class Consumer {
     private static final String TOPIC_NAME = "weather-topic";
-    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String BOOTSTRAP_SERVERS = "my-kafka:9092";
     private static final String GROUP_ID = "weather-group";
 
     public static void main(String[] args) {

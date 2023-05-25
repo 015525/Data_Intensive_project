@@ -22,11 +22,14 @@ import org.example.avro.weather_fields;
 
 public class Station {
     private static final String TOPIC_NAME = "weather-topic";
-    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String BOOTSTRAP_SERVERS = "my-kafka:9092";
 
     public static void main(String[] args) {
-        // Producer
-        long id = new Random().nextLong(); //id of the station
+        String stationId = System.getenv("STATION_ID");
+        String[] parts = stationId.split("-");
+        String numericPart = parts[1];
+        System.out.println("Station ID: " + numericPart);
+        long id = Integer.parseInt(numericPart);
 
         //producer properties
         Properties producerProps = new Properties();

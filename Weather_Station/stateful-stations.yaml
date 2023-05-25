@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stations
+spec:
+  replicas: 10
+  serviceName: "stations"
+  selector:
+    matchLabels:
+      app: station
+  template:
+    metadata:
+      labels:
+        app: station
+    spec:
+      containers:
+        - name: station
+          image: station
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: STATION_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+

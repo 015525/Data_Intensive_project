@@ -11,7 +11,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: my-local-storage
   local:
-    path: /media/gad/mega/new
+    path: /storage/stations
   nodeAffinity:
     required:
       nodeSelectorTerms:
