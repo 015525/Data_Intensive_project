@@ -1,6 +1,7 @@
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/Record.java
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/Consumer.java
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/Recovery.java
+/home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/Parquet.java
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/BitCask.java
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/avro/WeatherMessage.java
 /home/ahmed/Desktop/Data_Intensive_project/DataCenterApp/src/main/java/org/example/bitcask/avro/weather_fields.java

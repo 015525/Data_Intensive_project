@@ -1,13 +1,16 @@
 org/example/bitcask/BitCask$3.class
+org/example/bitcask/Parquet$1.class
 org/example/bitcask/Main.class
 org/example/bitcask/BitCask$2.class
 org/example/bitcask/Record.class
 org/example/bitcask/Weather.class
 org/example/bitcask/Compact.class
+org/example/bitcask/Parquet.class
 org/example/bitcask/Consumer.class
 org/example/bitcask/BitCask$1.class
 org/example/bitcask/BitCask.class
 org/example/bitcask/compactedHashedValue.class
+org/example/bitcask/Main$1.class
 org/example/bitcask/avro/WeatherMessage$Builder.class
 org/example/bitcask/activeHashedValue.class
 org/example/bitcask/avro/weather_fields.class

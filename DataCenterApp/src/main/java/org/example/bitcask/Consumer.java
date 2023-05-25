@@ -28,6 +28,9 @@ public class Consumer {
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         // properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // Create a Kafka consumer
+        BitCask bitCask = new BitCask();
+        Parquet parquet = new Parquet();
+
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
 
         // Subscribe to the topic
@@ -41,7 +44,17 @@ public class Consumer {
                     byte[] valueBytes = record.value();
                     WeatherMessage value = deserializeAvroMessage(valueBytes);
                     String key = record.key();
+
+                    Weather weather = new Weather(value.getWeather().getHumidity(), value.getWeather().getTemperature(), value.getWeather().getWindSpeed());
+                    Record rec= new Record(value.getStationId(), value.getSNo(), value.getBatteryStatus(), System.currentTimeMillis(), weather);
                     System.out.println("Received Avro message: key: " + key + " \n value: " + value);
+
+                    try{
+                        bitCask.handleMessage(rec);
+                        parquet.handle_rec(rec);
+                    }catch(InterruptedException e){
+                        throw new RuntimeException(e);
+                    }
                 }catch(Exception e){
                     System.err.println("failed to deserialize Avro message");
                     e.printStackTrace();
