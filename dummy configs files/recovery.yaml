@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recovery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recovery
+  template:
+    metadata:
+      labels:
+        app: recovery
+    spec:
+      containers:
+        - name: recovery
+          image: recovery
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: data-volume
+              mountPath: /media/gad/mega/new
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: local-pvc # Replace with the name of the PersistentVolumeClaim you created
+

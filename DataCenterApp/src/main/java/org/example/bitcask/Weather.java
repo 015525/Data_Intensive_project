@@ -13,6 +13,10 @@ public class Weather implements Serializable {
         this.wind_speed = wind_speed;
     }
 
+    public Weather() {
+
+    }
+
     @Override
     public String toString() {
         return "Weather{" +

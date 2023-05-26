@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+spec:
+  containers:
+  - name: debug-container
+    image: busybox
+    command:
+      - sleep
+      - "3600"  # Sleep for an hour to keep the pod running
+

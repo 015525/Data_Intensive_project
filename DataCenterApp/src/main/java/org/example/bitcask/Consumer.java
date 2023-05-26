@@ -1,4 +1,4 @@
-package org.example;
+package org.example.bitcask;
 
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
@@ -12,11 +12,11 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
-import org.example.avro.WeatherMessage;
+import org.example.bitcask.avro.WeatherMessage;
 
 public class Consumer {
     private static final String TOPIC_NAME = "weather-topic";
-    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String BOOTSTRAP_SERVERS = "my-kafka:9092";
     private static final String GROUP_ID = "weather-group";
 
     public static void main(String[] args) {
@@ -26,8 +26,11 @@ public class Consumer {
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-       // properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        // properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // Create a Kafka consumer
+        BitCask bitCask = new BitCask();
+        Parquet parquet = new Parquet();
+
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
 
         // Subscribe to the topic
@@ -41,7 +44,17 @@ public class Consumer {
                     byte[] valueBytes = record.value();
                     WeatherMessage value = deserializeAvroMessage(valueBytes);
                     String key = record.key();
+
+                    Weather weather = new Weather(value.getWeather().getHumidity(), value.getWeather().getTemperature(), value.getWeather().getWindSpeed());
+                    Record rec= new Record(value.getStationId(), value.getSNo(), value.getBatteryStatus(), System.currentTimeMillis(), weather);
                     System.out.println("Received Avro message: key: " + key + " \n value: " + value);
+
+                    try{
+                        bitCask.handleMessage(rec);
+                        parquet.handle_rec(rec);
+                    }catch(InterruptedException e){
+                        throw new RuntimeException(e);
+                    }
                 }catch(Exception e){
                     System.err.println("failed to deserialize Avro message");
                     e.printStackTrace();
