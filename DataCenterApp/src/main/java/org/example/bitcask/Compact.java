@@ -25,9 +25,9 @@ public class Compact {
         });
 
         ArrayList<File> filteredFiles =  new ArrayList<>(Arrays.asList(files));
-        for (File file : filteredFiles) {
-            System.out.println(file.getName());
-        }
+//        for (File file : filteredFiles) {
+//            System.out.println(file.getName());
+//        }
         /////////////////////
         ///// Delete active file
         /////////////////////
@@ -120,7 +120,7 @@ public class Compact {
     public void compact(String currentDir){
         readInactiveFiles();
         generateCompactedFile(currentDir);
-        System.out.println("Generated compact file");
+        System.out.println("Generated compacted file");
     }
     public void collect_old_files() {
         for (File file : inActiveFiles) {

@@ -90,7 +90,7 @@ public class Parquet {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            System.out.println("buffer succesfully written to parquet");
+            System.out.println("buffer successfully written to parquet");
         //}
     }
 
@@ -192,7 +192,7 @@ public class Parquet {
     public static void main(String[] args){
         Parquet p = new Parquet();
         for(int i = 0;i < 60005; i++){
-            if (i%1000 == 0) System.out.println(i);
+//            if (i%1000 == 0) System.out.println(i);
             Weather weather = new Weather(50,60,70);
             Record rec = new Record(i%3, i ,"low",System.currentTimeMillis(),weather);
             p.handle_rec(rec);

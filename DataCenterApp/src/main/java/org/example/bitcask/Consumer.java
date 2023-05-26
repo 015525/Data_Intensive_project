@@ -19,17 +19,25 @@ public class Consumer {
     private static final String BOOTSTRAP_SERVERS = "my-kafka:9092";
     private static final String GROUP_ID = "weather-group";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         // Configure Kafka consumer properties
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        // properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         // Create a Kafka consumer
         BitCask bitCask = new BitCask();
         Parquet parquet = new Parquet();
+        Recovery recovery = new Recovery();
+        recovery.recover();
+        BitCask.hashTable = recovery.recoverdHashMap;
+        BitCask.LastNonCompacted = recovery.LastNonCompacted;
+        for(long n : BitCask.hashTable.keySet()){
+            System.out.println("key is " + n);
+            System.out.println(bitCask.get(n));
+        }
 
         KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
 
@@ -47,8 +55,8 @@ public class Consumer {
 
                     Weather weather = new Weather(value.getWeather().getHumidity(), value.getWeather().getTemperature(), value.getWeather().getWindSpeed());
                     Record rec= new Record(value.getStationId(), value.getSNo(), value.getBatteryStatus(), System.currentTimeMillis(), weather);
-                    System.out.println("Received Avro message: key: " + key + " \n value: " + value);
-
+//                    System.out.println("Received Avro message: key: " + key + " \n value: " + value);
+                    System.out.println("Received Avro message from station :" + rec.station_id);
                     try{
                         bitCask.handleMessage(rec);
                         parquet.handle_rec(rec);

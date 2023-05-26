@@ -20,7 +20,7 @@ public class RainTrigger {
     public static void main(String[] args){
         Properties config = new Properties();
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "RAIN_TRIGGER");
-        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "my-kafka:9092");
         //config.put(ConsumerConfig.GROUP_ID_CONFIG, "weather-group");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.ByteArray().getClass());
