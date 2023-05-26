@@ -1,19 +1,19 @@
 import threading
-from flask import Flask
+from flask import Flask, request
 from queue import Queue
 from werkzeug.serving import ThreadedWSGIServer
 from elasticsearch import Elasticsearch
 import pyarrow.parquet as pq
-import pandas as pd
 
 app = Flask(__name__)
 q = Queue()
 es = Elasticsearch(['http://localhost:9200'])
 
 
-@app.route('/api/<path>')
-def get_example(path):
-    q.put('C:/Users/LapStore/Downloads/' + path)
+@app.route('/api')
+def get_example():
+    path = request.json.get('path')
+    q.put(path)
     return path
 
 
