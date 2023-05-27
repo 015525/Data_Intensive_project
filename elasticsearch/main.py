@@ -7,11 +7,11 @@ import pyarrow.parquet as pq
 
 app = Flask(__name__)
 q = Queue()
-es = Elasticsearch(['http://localhost:9200'])
+es = Elasticsearch(['http://elasticsearch-kibana-service:9200'])
 
-
-@app.route('/api')
+@app.route('/api', methods=['POST'])
 def get_example():
+    print(request)
     path = request.json.get('path')
     q.put(path)
     return path
@@ -32,7 +32,7 @@ def receive():
 
 
 if __name__ == '__main__':
-    server = ThreadedWSGIServer('localhost', port=1200, app=app)
+    server = ThreadedWSGIServer('0.0.0.0', port = 5000, app=app)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
     receive()

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch-kibana
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-kibana
+    spec:
+      containers:
+        - name: elasticsearch-kibana
+          image: nshou/elasticsearch-kibana
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9200 # Elasticsearch HTTP
+            - containerPort: 5601 # Kibana UI
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-kibana-service
+spec:
+  selector:
+    app: elasticsearch-kibana
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200 # Expose Elasticsearch port internally
+    - name: kibana
+      protocol: TCP
+      port: 5601 # Expose Kibana port internally
+
