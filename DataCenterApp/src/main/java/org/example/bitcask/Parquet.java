@@ -32,13 +32,17 @@ public class Parquet {
 
     Parquet(){
         String project_path = System.getProperty("user.dir");
-        this.path = project_path + File.separator +  "parquet_files";
+        this.path = String.format("%s" , "/storage/stations/parquet"); // project_path + File.separator +
 
         //System.out.println("folder_path : " + path);
         File folder = new File(path);
         if (!folder.exists()){
             boolean created = folder.mkdir();
         }
+    }
+
+    public String getPath() {
+        return path;
     }
 
     public void makeParqDir(long station_id){
@@ -197,5 +201,6 @@ public class Parquet {
             Record rec = new Record(i%3, i ,"low",System.currentTimeMillis(),weather);
             p.handle_rec(rec);
         }
+        
     }
 }

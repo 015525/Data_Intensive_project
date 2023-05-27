@@ -10,20 +10,20 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         BitCask bitCask = new BitCask();
         Parquet parquet = new Parquet();
-        Recovery recovery = new Recovery();
-        recovery.recover();
-        BitCask.hashTable = recovery.recoverdHashMap;
-        BitCask.LastNonCompacted = recovery.LastNonCompacted;
-        for(long n : BitCask.hashTable.keySet()){
-            System.out.println("key is " + n);
-            System.out.println(bitCask.get(n));
-        }
-
+//        Recovery recovery = new Recovery();
+//        recovery.recover();
+//        BitCask.hashTable = recovery.recoverdHashMap;
+//        BitCask.LastNonCompacted = recovery.LastNonCompacted;
+//        for(long n : BitCask.hashTable.keySet()){
+//            System.out.println("key is " + n);
+//            System.out.println(bitCask.get(n));
+//        }
+//
 //        long startw = System.currentTimeMillis();
 ////        Thread t =  new Thread(new Runnable() {
 ////            @Override
 ////            public void run() {
-                for(int i = 0;i < 600; i++){
+                for(int i = 0;i < 6000; i++){
                     Weather weather = new Weather(50,60,70);
                     Record rec = new Record(i % 10, i ,"low",System.currentTimeMillis(),weather);
                     try {

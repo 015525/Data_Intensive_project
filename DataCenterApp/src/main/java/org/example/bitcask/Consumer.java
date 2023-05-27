@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Properties;
 
 import org.example.bitcask.avro.WeatherMessage;
+import org.example.bitcask.connections.Ambassador;
 
 public class Consumer {
     private static final String TOPIC_NAME = "weather-topic";
@@ -30,6 +31,9 @@ public class Consumer {
         // Create a Kafka consumer
         BitCask bitCask = new BitCask();
         Parquet parquet = new Parquet();
+        Ambassador ambassador = new Ambassador();
+
+        ambassador.sendMessageToFlaskApp(parquet.getPath());
         Recovery recovery = new Recovery();
         recovery.recover();
         BitCask.hashTable = recovery.recoverdHashMap;
