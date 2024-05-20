@@ -34,7 +34,6 @@ Multiple weather stations that feed a queueing service (Kafka) with their readin
 
 
 ### B) Kafka Processors
-- Implemented in [kafka-processing service](./kafka-processor/).
 - There are two types of processing following **router integration pattern**:
   
 | Processing Type | Description |
