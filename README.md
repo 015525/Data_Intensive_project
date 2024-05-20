@@ -21,7 +21,6 @@ The 3 major components are:
 ## Data Acquisition
 Multiple weather stations that feed a queueing service (Kafka) with their readings.</br>
 ### A) Weather Stations
-- Implemented in [weather-station service](./weather-station/)
 - We have 2 types of stations: **Mock Stations**, and **Adapter Stations**.
 - Mock Stations are required to randomise its weather readings.
 - Adapter Stations get results from Open-Meteo according to a latitude and longitude given at the beginning.
